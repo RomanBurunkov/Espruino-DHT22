@@ -8,15 +8,15 @@ function DHT22(pin) {
   this.readStopTimeout = 50;
   this.lastRead;
   this.lastResult = { raw: '', rh: -1, temp: -1 };
+  this.checksumMap = [2, 10, 18, 26];
 
-  // Returns current module state.
+  // Returns current sensor state so user can check if it is ready to read data.
   this.getState = function() { return ht.state === 0 ? 'ready' : 'busy'; };
-  // Calculates read data checksum.
+  // Calculates recieved data checksum.
   this.calcChecksum = function(d) {
-    return parseInt(d.substr(2, 8), 2) +
-      parseInt(d.substr(10, 8), 2) +
-      parseInt(d.substr(18, 8), 2) +
-      parseInt(d.substr(26, 8), 2);   
+    return ht.checksumMap.reduce(function(a, b){
+      return a + parseInt(d.substr(b, 8), 2);
+    }, 0);
   };
   // Checks if calcuated checksum equal checksum from the sensor.
   this.checkChecksum = function(cks, d) { return cks && ((cks&0xFF) == parseInt(d.substr(34, 8), 2)); };
@@ -47,7 +47,7 @@ function DHT22(pin) {
     ht.watch = setWatch(function(t) {
       ht.d += 0 | (t.time - t.lastTime > 0.00005);
     }, ht.pin, { repeat: true, edge: -1 });
-    // raise pulse after 1ms
+    // raise pulse after 2ms, since dht22 datasheet says time should be 1ms at least.
     setTimeout(function() {
       pinMode(ht.pin,'input_pullup');
       pinMode(ht.pin);
